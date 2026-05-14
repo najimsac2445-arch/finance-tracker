@@ -387,79 +387,60 @@ export default function FinanceTracker() {
     </div>
   );
 }
-
 // ─── CALCULATOR ───────────────────────────────────────────────────────────────
+let _calcCollapsed = true;
+let _calcDisplay = "0";
+let _calcPrev = null;
+let _calcOp = null;
+let _calcFresh = true;
+
 function Calculator() {
-  const [display, setDisplay] = useState("0");
-  const [prev, setPrev] = useState(null);
-  const [op, setOp] = useState(null);
-  const [fresh, setFresh] = useState(true);
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(_calcCollapsed);
+  const [display, setDisplay] = useState(_calcDisplay);
+  const [prev, setPrev] = useState(_calcPrev);
+  const [op, setOp] = useState(_calcOp);
+  const [fresh, setFresh] = useState(_calcFresh);
 
   const press = (val) => {
-    if (val === "C") {
-      setDisplay("0"); setPrev(null); setOp(null); setFresh(true); return;
+    if (val==="C") { _calcDisplay="0"; _calcPrev=null; _calcOp=null; _calcFresh=true; setDisplay("0"); setPrev(null); setOp(null); setFresh(true); return; }
+    if (val==="⌫") { const nd=display.length>1?display.slice(0,-1):"0"; _calcDisplay=nd; setDisplay(nd); return; }
+    if (["+","−","×","÷"].includes(val)) { _calcPrev=parseFloat(display); _calcOp=val; _calcFresh=true; setPrev(parseFloat(display)); setOp(val); setFresh(true); return; }
+    if (val==="=") {
+      if(op===null||prev===null) return;
+      const cur=parseFloat(display);
+      let r;
+      if(op==="+") r=prev+cur;
+      else if(op==="−") r=prev-cur;
+      else if(op==="×") r=prev*cur;
+      else if(op==="÷") r=cur!==0?prev/cur:"Err";
+      const s=typeof r==="number"?parseFloat(r.toFixed(10)).toString():r;
+      _calcDisplay=s; _calcPrev=null; _calcOp=null; _calcFresh=true;
+      setDisplay(s); setPrev(null); setOp(null); setFresh(true); return;
     }
-    if (val === "⌫") {
-      setDisplay(d => d.length > 1 ? d.slice(0, -1) : "0"); return;
-    }
-    if (["+", "−", "×", "÷"].includes(val)) {
-      setPrev(parseFloat(display));
-      setOp(val);
-      setFresh(true);
-      return;
-    }
-    if (val === "=") {
-      if (op === null || prev === null) return;
-      const cur = parseFloat(display);
-      let result;
-      if (op === "+") result = prev + cur;
-      else if (op === "−") result = prev - cur;
-      else if (op === "×") result = prev * cur;
-      else if (op === "÷") result = cur !== 0 ? prev / cur : "Err";
-      const str = typeof result === "number"
-        ? parseFloat(result.toFixed(10)).toString()
-        : result;
-      setDisplay(str);
-      setPrev(null); setOp(null); setFresh(true);
-      return;
-    }
-    if (val === "." && display.includes(".") && !fresh) return;
-    setDisplay(d => {
-      if (fresh) { setFresh(false); return val === "." ? "0." : val; }
-      if (d === "0" && val !== ".") return val;
-      return d + val;
-    });
+    if (val==="%") { const s=String(parseFloat(display)/100); _calcDisplay=s; setDisplay(s); return; }
+    if (val==="."&&display.includes(".")&&!fresh) return;
+    if (fresh) { const s=val==="."?"0.":val; _calcDisplay=s; _calcFresh=false; setDisplay(s); setFresh(false); }
+    else { const s=display==="0"&&val!=="."?val:display+val; _calcDisplay=s; setDisplay(s); }
   };
 
-  const rows = [
-    ["C", "⌫", "÷", "×"],
-    ["7", "8", "9", "−"],
-    ["4", "5", "6", "+"],
-    ["1", "2", "3", "="],
-    ["0", "%", ".", "="],
-  ];
-
-  // Simplified rows for cleaner layout
-  const btns = [
-    [{l:"C",type:"fn"},{l:"⌫",type:"fn"},{l:"÷",type:"op"},{l:"×",type:"op"}],
-    [{l:"7",type:"num"},{l:"8",type:"num"},{l:"9",type:"num"},{l:"−",type:"op"}],
-    [{l:"4",type:"num"},{l:"5",type:"num"},{l:"6",type:"num"},{l:"+",type:"op"}],
-    [{l:"1",type:"num"},{l:"2",type:"num"},{l:"3",type:"num"},{l:"=",type:"eq",rowSpan:2}],
-    [{l:"0",type:"num",wide:true},{l:".",type:"num"}],
-  ];
-
-  const btnColor = (type) => {
-    if (type === "op") return { background:"rgba(255,107,157,0.2)", color:"#FF6B9D", border:"1px solid rgba(255,107,157,0.3)" };
-    if (type === "fn") return { background:"rgba(255,255,255,0.1)", color:"rgba(255,255,255,0.7)", border:"1px solid rgba(255,255,255,0.08)" };
-    if (type === "eq") return { background:"linear-gradient(135deg,#FF6B9D,#C084FC)", color:"#fff", border:"none", boxShadow:"0 4px 16px rgba(255,107,157,0.35)" };
-    return { background:"rgba(255,255,255,0.06)", color:"#E8EAF0", border:"1px solid rgba(255,255,255,0.08)" };
+  const btnColor=(t)=>{
+    if(t==="op") return {background:"rgba(255,107,157,0.2)",color:"#FF6B9D",border:"1px solid rgba(255,107,157,0.3)"};
+    if(t==="fn") return {background:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.7)",border:"1px solid rgba(255,255,255,0.08)"};
+    if(t==="eq") return {background:"linear-gradient(135deg,#FF6B9D,#C084FC)",color:"#fff",border:"none",boxShadow:"0 4px 16px rgba(255,107,157,0.35)"};
+    return {background:"rgba(255,255,255,0.06)",color:"#E8EAF0",border:"1px solid rgba(255,255,255,0.08)"};
   };
+
+  const BTNS = [
+    {l:"C",t:"fn"},{l:"⌫",t:"fn"},{l:"%",t:"fn"},{l:"÷",t:"op"},
+    {l:"7",t:"num"},{l:"8",t:"num"},{l:"9",t:"num"},{l:"×",t:"op"},
+    {l:"4",t:"num"},{l:"5",t:"num"},{l:"6",t:"num"},{l:"−",t:"op"},
+    {l:"1",t:"num"},{l:"2",t:"num"},{l:"3",t:"num"},{l:"+",t:"op"},
+    {l:"0",t:"num",wide:true},{l:".",t:"num"},{l:"=",t:"eq"},
+  ];
 
   return (
-    <div className="card" style={{...G.card, padding:18}}>
-      {/* Header — tap to collapse/expand */}
-      <div className="tappable" onClick={()=>setCollapsed(c=>!c)}
+    <div style={{...G.card, padding:18}}>
+      <div className="tappable" onClick={()=>{ _calcCollapsed=!collapsed; setCollapsed(c=>!c); }}
         style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:collapsed?0:16}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{fontSize:20}}>🧮</div>
@@ -470,38 +451,25 @@ function Calculator() {
 
       {!collapsed && (
         <div>
-          {/* Display */}
           <div style={{background:"rgba(0,0,0,0.25)",borderRadius:16,padding:"16px 18px",marginBottom:14,textAlign:"right",minHeight:72,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
             {op && <div style={{color:"rgba(255,255,255,0.3)",fontSize:12,marginBottom:2}}>{prev} {op}</div>}
             <div style={{fontSize:36,fontWeight:700,color:"#fff",letterSpacing:-1,wordBreak:"break-all",lineHeight:1.1}}>
-              {display.length > 12 ? parseFloat(parseFloat(display).toFixed(6)).toString() : display}
+              {display.length>12?parseFloat(parseFloat(display).toFixed(6)).toString():display}
             </div>
           </div>
-
-          {/* Buttons — 4 column grid */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-            {[
-              {l:"C",t:"fn"},{l:"⌫",t:"fn"},{l:"÷",t:"op"},{l:"×",t:"op"},
-              {l:"7",t:"num"},{l:"8",t:"num"},{l:"9",t:"num"},{l:"−",t:"op"},
-              {l:"4",t:"num"},{l:"5",t:"num"},{l:"6",t:"num"},{l:"+",t:"op"},
-              {l:"1",t:"num"},{l:"2",t:"num"},{l:"3",t:"num"},{l:"=",t:"eq"},
-              {l:"0",t:"num",wide:true},{l:".",t:"num"},{l:"=",t:"eq"},
-            ].map((b,i)=>{
-              const styles=btnColor(b.t);
-              return(
-                <button key={i} onClick={()=>press(b.l)} className="action-btn"
-                  style={{...styles,gridColumn:b.wide?"span 2":"span 1",padding:"17px 8px",borderRadius:14,fontSize:b.t==="eq"?22:18,fontWeight:700,cursor:"pointer",lineHeight:1,WebkitTapHighlightColor:"transparent"}}>
-                  {b.l}
-                </button>
-              );
-            })}
+            {BTNS.map((b,i)=>(
+              <button key={i} onClick={()=>press(b.l)} className="action-btn"
+                style={{...btnColor(b.t),gridColumn:b.wide?"span 2":"span 1",padding:"17px 8px",borderRadius:14,fontSize:b.t==="eq"?22:18,fontWeight:700,cursor:"pointer",lineHeight:1,WebkitTapHighlightColor:"transparent"}}>
+                {b.l}
+              </button>
+            ))}
           </div>
         </div>
       )}
     </div>
   );
 }
-
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function Dashboard({ totalIncome, totalExpense, netBalance, totalSaved, totalInvested, expByCat, data, openModal, fmt, COLORS, now, navigate }) {
   const cats=Object.entries(expByCat).sort((a,b)=>b[1]-a[1]);
